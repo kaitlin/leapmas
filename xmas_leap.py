@@ -1,7 +1,7 @@
 import Leap, sys
 import serial
 import time
-from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
+from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture, InteractionBox
 
 
 
@@ -9,13 +9,16 @@ class LightListener(Leap.Listener):
 
     def on_init(self, controller):
         print "Initialized"
-        self.ser = serial.Serial('/dev/ttyACM0', 9600)
-        self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;255;000X", "G080;000;080X", "G000;255;255X"]
-        time.sleep(1)
+        #self.ser = serial.Serial('/dev/ttyACM0', 9600)
+        self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;255;000X"]
+        time.sleep(1) #wait for the arduino to be ready
+        self.interaction_box = InteractionBox()
+        print self.interaction_box.width
+        print self.interaction_box.height
+        print self.interaction_box.depth
 
     def on_connect(self, controller):
         print "Connected"
-
         # Enable gestures
         controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
         controller.enable_gesture(Leap.Gesture.TYPE_KEY_TAP);
@@ -33,13 +36,13 @@ class LightListener(Leap.Listener):
         # Get the most recent frame and report some basic information
         frame = controller.frame()
 #        print frame. current_frames_per_second
-
         #detect circle or swipe gestures
         for gest in frame.gestures():
             
             if gest.type == Leap.Gesture.TYPE_KEY_TAP:
                 tap = KeyTapGesture(gest)
                 if tap.state == Leap.Gesture.STATE_STOP:
+
                     if not frame.hands.is_empty:
                         hand = frame.hands[0]
                         fingers = hand.fingers
@@ -71,14 +74,12 @@ class LightListener(Leap.Listener):
         #check palm position
         if not frame.hands.is_empty:
             if len(frame.hands) == 1:
-                palm = frame.hands[0].palm_position
-                x, y, z = palm[0], palm[1], palm[2]
-                hue = round(x/2) % 360
-                sat = round(y/3)/100
-                #intensity?
-                #print "x: {0}  y:{1}  z:{2}".format(x,y,z)
+                palm = frame.hands[0].stabilized_palm_position
+                palm_norm = self.interaction_box.normalize_point(palm)
+                x, y, z = palm_norm[0], palm_norm[1], palm_norm[2]
+                print "x: {0}  y:{1}  z:{2}".format(x,y,z)
 
-                self.ser.write("{0};{1}X".format(hue, sat))
+                #self.ser.write("{0};{1};{2}X".format(x, y, z))
 def main():
     # Create a sample listener and controller
     listener = LightListener()
