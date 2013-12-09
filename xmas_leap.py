@@ -10,7 +10,7 @@ class LightListener(Leap.Listener):
     def on_init(self, controller):
         print "Initialized"
         self.ser = serial.Serial('/dev/ttyACM0', 9600)
-        self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;255;000X"]
+        self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;215;000X", "G000;191;255X"]
         time.sleep(1) #wait for the arduino to be ready
         
     def on_connect(self, controller):
@@ -39,27 +39,29 @@ class LightListener(Leap.Listener):
             if gest.type == Leap.Gesture.TYPE_KEY_TAP:
                 tap = KeyTapGesture(gest)
                 if tap.state == Leap.Gesture.STATE_STOP:
-
-                    if not frame.hands.is_empty:
-                        hand = frame.hands[0]
-                        fingers = hand.fingers
-                        if not fingers.is_empty:
-                            for (i, f) in enumerate(fingers):
-                                if f == tap.pointable:
-                                    self.ser.write(self.color_cycle[i])
-                                    print "TAP!!!"
-                                    #refactor this to get hand from gesture, then order pointables by x position to get order of fingers
+                    gest_finger = tap.pointable
+                    hand = gest_finger.hand
+                    fingers = hand.fingers
+                    fingers = [fingers[x] for x in range(0, len(fingers))]
+                    fingers.sort(key=lambda x: x.tip_position[0])
+                    for (i, f) in enumerate(fingers):
+                        if f.id == gest_finger.id:
+                            print "finger #{0} was tapped".format(i)
+                            self.ser.write(self.color_cycle[i])
 
                                 
             
-            a="""if gest.type == Leap.Gesture.TYPE_CIRCLE:
+            elif gest.type == Leap.Gesture.TYPE_CIRCLE:
                 circle = CircleGesture(gest)
-                if circle.state == Leap.Gesture.STATE_START:
-                    print "circle started"
                 if circle.state == Leap.Gesture.STATE_STOP:
-                    print "circle ended"
+                    if circle.pointable.direction.angle_to(circle.normal) <= Leap.PI/2:
+                        #it's clockwise
+                        self.ser.write("C")
+                    else:
+                        self.ser.write("O")
+                        #it's counterclockwise
                     #make call to trigger 
-
+            a = """
             elif gest.type == Leap.Gesture.TYPE_SWIPE:
                 swipe = SwipeGesture(gest)
                 if swipe.state == Leap.Gesture.STATE_START:
@@ -75,14 +77,23 @@ class LightListener(Leap.Listener):
                 #palm = frame.hands[0].palm_position
                 palm_norm = ib.normalize_point(palm)
                 #print ib.width
-                #print ib.height
                 #print ib.depth
+                #print ib.height
                 #print palm_norm
                 #print palm
 
-                x, y, z = palm_norm[0], palm_norm[1], palm_norm[2]
+                x, y, z = palm_norm[0], palm_norm[2], palm_norm[1]
+                #print palm[0]
+                #print x
+                #print "===="
+                #print palm[2]
+                #print y
+                #print "======"
+                #print palm[1]
+                #print z 
+                #print "========="
                 r, g, b = x * 255, y * 255, z * 255
-                print "r: {0}  g:{1}  b:{2}".format(r,g,b)
+                #print "r: {0}  g:{1}  b:{2}".format(r,g,b)
                 #print "x: {0}  y:{1}  z:{2}".format(x,y,z)
                 
                 #print "{0:03d};{1:03d};{2:03d}X".format(int(r), int(g), int(b))
