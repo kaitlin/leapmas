@@ -9,14 +9,10 @@ class LightListener(Leap.Listener):
 
     def on_init(self, controller):
         print "Initialized"
-        #self.ser = serial.Serial('/dev/ttyACM0', 9600)
+        self.ser = serial.Serial('/dev/ttyACM0', 9600)
         self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;255;000X"]
         time.sleep(1) #wait for the arduino to be ready
-        self.interaction_box = InteractionBox()
-        print self.interaction_box.width
-        print self.interaction_box.height
-        print self.interaction_box.depth
-
+        
     def on_connect(self, controller):
         print "Connected"
         # Enable gestures
@@ -35,6 +31,7 @@ class LightListener(Leap.Listener):
     def on_frame(self, controller):
         # Get the most recent frame and report some basic information
         frame = controller.frame()
+        ib = frame.interaction_box
 #        print frame. current_frames_per_second
         #detect circle or swipe gestures
         for gest in frame.gestures():
@@ -75,11 +72,21 @@ class LightListener(Leap.Listener):
         if not frame.hands.is_empty:
             if len(frame.hands) == 1:
                 palm = frame.hands[0].stabilized_palm_position
-                palm_norm = self.interaction_box.normalize_point(palm)
-                x, y, z = palm_norm[0], palm_norm[1], palm_norm[2]
-                print "x: {0}  y:{1}  z:{2}".format(x,y,z)
+                #palm = frame.hands[0].palm_position
+                palm_norm = ib.normalize_point(palm)
+                #print ib.width
+                #print ib.height
+                #print ib.depth
+                #print palm_norm
+                #print palm
 
-                #self.ser.write("{0};{1};{2}X".format(x, y, z))
+                x, y, z = palm_norm[0], palm_norm[1], palm_norm[2]
+                r, g, b = x * 255, y * 255, z * 255
+                print "r: {0}  g:{1}  b:{2}".format(r,g,b)
+                #print "x: {0}  y:{1}  z:{2}".format(x,y,z)
+                
+                #print "{0:03d};{1:03d};{2:03d}X".format(int(r), int(g), int(b))
+                self.ser.write("{0:03d};{1:03d};{2:03d}X".format(int(r), int(g), int(b)))
 def main():
     # Create a sample listener and controller
     listener = LightListener()
