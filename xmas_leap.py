@@ -12,11 +12,14 @@ class LightListener(Leap.Listener):
         self.ser = serial.Serial('/dev/ttyACM0', 9600)
         self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;215;000X", "G000;191;255X"]
         time.sleep(1) #wait for the arduino to be ready
+        if controller.config.set("Gesture.Circle.MinRadius", 30.0) :
+            controller.config.save()
+
         
     def on_connect(self, controller):
         print "Connected"
         # Enable gestures
-        controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
+        #controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
         controller.enable_gesture(Leap.Gesture.TYPE_KEY_TAP);
         controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
         controller.enable_gesture(Leap.Gesture.TYPE_SWIPE);
@@ -61,6 +64,7 @@ class LightListener(Leap.Listener):
                         self.ser.write("O")
                         #it's counterclockwise
                     #make call to trigger 
+                    print "Circle!"
             a = """
             elif gest.type == Leap.Gesture.TYPE_SWIPE:
                 swipe = SwipeGesture(gest)
