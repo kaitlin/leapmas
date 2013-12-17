@@ -3,7 +3,11 @@ import serial
 import time
 from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture, InteractionBox
 
-
+def night():
+    if time.localtime().tm_hour >= 23:
+        return True
+    else:
+        return False
 
 class LightListener(Leap.Listener):
 
@@ -12,9 +16,9 @@ class LightListener(Leap.Listener):
         self.ser = serial.Serial('/dev/ttyACM0', 9600)
         self.color_cycle =["G255;000;000X", "G000;255;000X", "G000;000;255X", "G255;215;000X", "G000;191;255X"]
         time.sleep(1) #wait for the arduino to be ready
+   
         if controller.config.set("Gesture.Circle.MinRadius", 30.0) :
             controller.config.save()
-
         
     def on_connect(self, controller):
         print "Connected"
@@ -24,6 +28,7 @@ class LightListener(Leap.Listener):
         controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
         controller.enable_gesture(Leap.Gesture.TYPE_SWIPE);
 
+
     def on_disconnect(self, controller):
         # Note: not dispatched when running in a debugger.
         print "Disconnected"
@@ -32,6 +37,12 @@ class LightListener(Leap.Listener):
         print "Exited"
 
     def on_frame(self, controller):
+        
+        #Check if it's after 11pm
+        if night():
+            ser.write("000;000;000X")
+            sys.exit()
+
         # Get the most recent frame and report some basic information
         frame = controller.frame()
         ib = frame.interaction_box
@@ -111,9 +122,12 @@ def main():
     controller.add_listener(listener)
 
     # Keep this process running until Enter is pressed
-    print "Press Enter to quit..."
-    sys.stdin.readline()
-
+    #print "Press Enter to quit..."
+ 
+    #sys.stdin.readline()
+    while True:
+      #  pass
+      time.sleep(1)
     # Remove the sample listener when done
     controller.remove_listener(listener)
 
